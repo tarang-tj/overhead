@@ -1,0 +1,24 @@
+name: live-check
+# Manual only: load the deployed site in a real headless browser from a
+# GitHub runner (a network other than the developer's) and print the data
+# mode it booted in. One run = one ordinary visitor download from CelesTrak.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: mkdir -p artifacts && node scripts/check-live.mjs "https://tarang-tj.github.io/overhead/?mode=orbit"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-orbit
+          path: artifacts/live-orbit.png
