@@ -1,0 +1,49 @@
+name: deploy-pages
+# Rebuilds the satellite data and publishes the site to GitHub Pages.
+# The fresh data goes into the Pages artifact only, never into git history,
+# so the repo does not grow by megabytes a day. If CelesTrak or Open-Meteo
+# refuses (CelesTrak policy: stop on any non-200), the committed data ships.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm run lint && npm run test:unit
+      # CelesTrak asks for one download per 2 h update: only the daily schedule and
+      # manual runs fetch; a push deploys the committed data with no download.
+      - name: Refresh satellite data (falls back to committed data on failure)
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: node tools/build-all.mjs
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp -R index.html web LICENSE DATA-CREDITS.md _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

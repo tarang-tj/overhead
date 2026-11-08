@@ -1,0 +1,819 @@
+{
+ "generatedAt": "2026-11-08T06:45:31.936Z",
+ "sources": {
+  "gp": {
+   "url": "https://celestrak.org/NORAD/elements/gp.php",
+   "fetchedAt": "2026-11-08T06:04:31.766Z"
+  },
+  "satcat": {
+   "url": "https://celestrak.org/satcat/records.php",
+   "fetchedAt": "2026-11-08T06:04:32.010Z"
+  },
+  "perConstellation": {
+   "leo": {
+    "gp": {
+     "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=kuiper&FORMAT=json",
+     "fetchedAt": "2026-11-08T06:04:31.766Z"
+    },
+    "satcat": {
+     "url": "https://celestrak.org/satcat/records.php?NAME=KUIPER&FORMAT=json",
+     "fetchedAt": "2026-11-08T06:04:32.010Z"
+    }
+   },
+   "starlink": {
+    "gp": {
+     "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=json",
+     "fetchedAt": "2026-11-08T06:13:31.370Z"
+    },
+    "satcat": {
+     "url": "https://celestrak.org/satcat/records.php?NAME=STARLINK&FORMAT=json",
+     "fetchedAt": "2026-11-08T06:04:47.266Z"
+    }
+   }
+  }
+ },
+ "constellations": {
+  "leo": {
+   "label": "Amazon Leo",
+   "catalogName": "KUIPER",
+   "factory": {
+    "city": "Kirkland, WA",
+    "note": "Amazon's satellite factory; Redmond is the design hub",
+    "sources": [
+     "https://www.geekwire.com/2022/amazon-readies-kirkland-factory-to-build-kuiper-satellites/",
+     "https://www.cnbc.com/2022/10/27/amazon-to-open-kuiper-internet-satellite-factory.html"
+    ]
+   },
+   "shells": [
+    {
+     "minKm": 620,
+     "maxKm": 630,
+     "count": 378,
+     "centerKm": 625
+    }
+   ],
+   "stages": {
+    "raising": 4,
+    "onStation": 383,
+    "descending": 4,
+    "unknown": 0,
+    "decayed": 6,
+    "launched": 398
+   },
+   "inOrbit": 391,
+   "launchesByMonth": [
+    {
+     "month": "2023-10",
+     "count": 2
+    },
+    {
+     "month": "2025-04",
+     "count": 27
+    },
+    {
+     "month": "2025-06",
+     "count": 27
+    },
+    {
+     "month": "2025-07",
+     "count": 24
+    },
+    {
+     "month": "2025-08",
+     "count": 24
+    },
+    {
+     "month": "2025-09",
+     "count": 27
+    },
+    {
+     "month": "2025-10",
+     "count": 24
+    },
+    {
+     "month": "2025-12",
+     "count": 27
+    },
+    {
+     "month": "2026-02",
+     "count": 32
+    },
+    {
+     "month": "2026-04",
+     "count": 90
+    },
+    {
+     "month": "2026-05",
+     "count": 29
+    },
+    {
+     "month": "2026-06",
+     "count": 36
+    },
+    {
+     "month": "2026-07",
+     "count": 29
+    }
+   ],
+   "decaysByMonth": [
+    {
+     "month": "2024-09",
+     "count": 1
+    },
+    {
+     "month": "2025-04",
+     "count": 1
+    },
+    {
+     "month": "2026-02",
+     "count": 1
+    },
+    {
+     "month": "2026-03",
+     "count": 1
+    },
+    {
+     "month": "2026-07",
+     "count": 2
+    }
+   ],
+   "sites": {
+    "AFETR": 298,
+    "FRGUI": 100
+   },
+   "lastLaunchDate": "2026-07-02",
+   "arrivalRatePerDay90": 0,
+   "impliedRaiseDays": null
+  },
+  "starlink": {
+   "label": "Starlink",
+   "catalogName": "STARLINK",
+   "factory": {
+    "city": "Redmond, WA",
+    "note": "SpaceX's Starlink satellite factory",
+    "sources": [
+     "https://choosewashingtonstate.com/?p=30337"
+    ]
+   },
+   "shells": [
+    {
+     "minKm": 350,
+     "maxKm": 360,
+     "count": 663,
+     "centerKm": 355
+    },
+    {
+     "minKm": 460,
+     "maxKm": 490,
+     "count": 9194,
+     "centerKm": 475
+    }
+   ],
+   "stages": {
+    "raising": 92,
+    "onStation": 10704,
+    "descending": 407,
+    "unknown": 0,
+    "decayed": 1820,
+    "launched": 13024
+   },
+   "inOrbit": 11203,
+   "launchesByMonth": [
+    {
+     "month": "2019-05",
+     "count": 60
+    },
+    {
+     "month": "2019-11",
+     "count": 60
+    },
+    {
+     "month": "2020-01",
+     "count": 120
+    },
+    {
+     "month": "2020-02",
+     "count": 60
+    },
+    {
+     "month": "2020-03",
+     "count": 60
+    },
+    {
+     "month": "2020-04",
+     "count": 60
+    },
+    {
+     "month": "2020-06",
+     "count": 118
+    },
+    {
+     "month": "2020-08",
+     "count": 115
+    },
+    {
+     "month": "2020-09",
+     "count": 60
+    },
+    {
+     "month": "2020-10",
+     "count": 180
+    },
+    {
+     "month": "2020-11",
+     "count": 60
+    },
+    {
+     "month": "2021-01",
+     "count": 70
+    },
+    {
+     "month": "2021-02",
+     "count": 120
+    },
+    {
+     "month": "2021-03",
+     "count": 240
+    },
+    {
+     "month": "2021-04",
+     "count": 120
+    },
+    {
+     "month": "2021-05",
+     "count": 232
+    },
+    {
+     "month": "2021-06",
+     "count": 3
+    },
+    {
+     "month": "2021-09",
+     "count": 51
+    },
+    {
+     "month": "2021-11",
+     "count": 53
+    },
+    {
+     "month": "2021-12",
+     "count": 100
+    },
+    {
+     "month": "2022-01",
+     "count": 98
+    },
+    {
+     "month": "2022-02",
+     "count": 113
+    },
+    {
+     "month": "2022-03",
+     "count": 148
+    },
+    {
+     "month": "2022-04",
+     "count": 106
+    },
+    {
+     "month": "2022-05",
+     "count": 212
+    },
+    {
+     "month": "2022-06",
+     "count": 53
+    },
+    {
+     "month": "2022-07",
+     "count": 251
+    },
+    {
+     "month": "2022-08",
+     "count": 251
+    },
+    {
+     "month": "2022-09",
+     "count": 191
+    },
+    {
+     "month": "2022-10",
+     "count": 159
+    },
+    {
+     "month": "2022-12",
+     "count": 108
+    },
+    {
+     "month": "2023-01",
+     "count": 156
+    },
+    {
+     "month": "2023-02",
+     "count": 180
+    },
+    {
+     "month": "2023-03",
+     "count": 215
+    },
+    {
+     "month": "2023-04",
+     "count": 67
+    },
+    {
+     "month": "2023-05",
+     "count": 237
+    },
+    {
+     "month": "2023-06",
+     "count": 177
+    },
+    {
+     "month": "2023-07",
+     "count": 183
+    },
+    {
+     "month": "2023-08",
+     "count": 124
+    },
+    {
+     "month": "2023-09",
+     "count": 195
+    },
+    {
+     "month": "2023-10",
+     "count": 176
+    },
+    {
+     "month": "2023-11",
+     "count": 137
+    },
+    {
+     "month": "2023-12",
+     "count": 137
+    },
+    {
+     "month": "2024-01",
+     "count": 156
+    },
+    {
+     "month": "2024-02",
+     "count": 113
+    },
+    {
+     "month": "2024-03",
+     "count": 181
+    },
+    {
+     "month": "2024-04",
+     "count": 204
+    },
+    {
+     "month": "2024-05",
+     "count": 224
+    },
+    {
+     "month": "2024-06",
+     "count": 170
+    },
+    {
+     "month": "2024-07",
+     "count": 89
+    },
+    {
+     "month": "2024-08",
+     "count": 175
+    },
+    {
+     "month": "2024-09",
+     "count": 82
+    },
+    {
+     "month": "2024-10",
+     "count": 151
+    },
+    {
+     "month": "2024-11",
+     "count": 266
+    },
+    {
+     "month": "2024-12",
+     "count": 153
+    },
+    {
+     "month": "2025-01",
+     "count": 179
+    },
+    {
+     "month": "2025-02",
+     "count": 218
+    },
+    {
+     "month": "2025-03",
+     "count": 143
+    },
+    {
+     "month": "2025-04",
+     "count": 231
+    },
+    {
+     "month": "2025-05",
+     "count": 398
+    },
+    {
+     "month": "2025-06",
+     "count": 309
+    },
+    {
+     "month": "2025-07",
+     "count": 204
+    },
+    {
+     "month": "2025-08",
+     "count": 236
+    },
+    {
+     "month": "2025-09",
+     "count": 288
+    },
+    {
+     "month": "2025-10",
+     "count": 337
+    },
+    {
+     "month": "2025-11",
+     "count": 288
+    },
+    {
+     "month": "2025-12",
+     "count": 338
+    },
+    {
+     "month": "2026-01",
+     "count": 249
+    },
+    {
+     "month": "2026-02",
+     "count": 292
+    },
+    {
+     "month": "2026-03",
+     "count": 353
+    },
+    {
+     "month": "2026-04",
+     "count": 231
+    },
+    {
+     "month": "2026-05",
+     "count": 212
+    },
+    {
+     "month": "2026-06",
+     "count": 252
+    },
+    {
+     "month": "2026-07",
+     "count": 210
+    },
+    {
+     "month": "2026-08",
+     "count": 261
+    },
+    {
+     "month": "2026-09",
+     "count": 107
+    },
+    {
+     "month": "2026-10",
+     "count": 108
+    }
+   ],
+   "decaysByMonth": [
+    {
+     "month": "2020-02",
+     "count": 2
+    },
+    {
+     "month": "2020-04",
+     "count": 1
+    },
+    {
+     "month": "2020-05",
+     "count": 2
+    },
+    {
+     "month": "2020-07",
+     "count": 1
+    },
+    {
+     "month": "2020-08",
+     "count": 7
+    },
+    {
+     "month": "2020-09",
+     "count": 28
+    },
+    {
+     "month": "2020-10",
+     "count": 13
+    },
+    {
+     "month": "2020-11",
+     "count": 4
+    },
+    {
+     "month": "2020-12",
+     "count": 3
+    },
+    {
+     "month": "2021-01",
+     "count": 1
+    },
+    {
+     "month": "2021-03",
+     "count": 4
+    },
+    {
+     "month": "2021-04",
+     "count": 4
+    },
+    {
+     "month": "2021-05",
+     "count": 2
+    },
+    {
+     "month": "2021-06",
+     "count": 6
+    },
+    {
+     "month": "2021-07",
+     "count": 9
+    },
+    {
+     "month": "2021-08",
+     "count": 12
+    },
+    {
+     "month": "2021-09",
+     "count": 12
+    },
+    {
+     "month": "2021-10",
+     "count": 12
+    },
+    {
+     "month": "2021-11",
+     "count": 10
+    },
+    {
+     "month": "2021-12",
+     "count": 18
+    },
+    {
+     "month": "2022-01",
+     "count": 21
+    },
+    {
+     "month": "2022-02",
+     "count": 12
+    },
+    {
+     "month": "2022-03",
+     "count": 7
+    },
+    {
+     "month": "2022-04",
+     "count": 21
+    },
+    {
+     "month": "2022-05",
+     "count": 2
+    },
+    {
+     "month": "2022-06",
+     "count": 5
+    },
+    {
+     "month": "2022-07",
+     "count": 6
+    },
+    {
+     "month": "2022-08",
+     "count": 9
+    },
+    {
+     "month": "2022-09",
+     "count": 4
+    },
+    {
+     "month": "2022-10",
+     "count": 11
+    },
+    {
+     "month": "2022-11",
+     "count": 7
+    },
+    {
+     "month": "2022-12",
+     "count": 2
+    },
+    {
+     "month": "2023-01",
+     "count": 1
+    },
+    {
+     "month": "2023-02",
+     "count": 6
+    },
+    {
+     "month": "2023-03",
+     "count": 5
+    },
+    {
+     "month": "2023-04",
+     "count": 12
+    },
+    {
+     "month": "2023-05",
+     "count": 7
+    },
+    {
+     "month": "2023-06",
+     "count": 10
+    },
+    {
+     "month": "2023-07",
+     "count": 8
+    },
+    {
+     "month": "2023-08",
+     "count": 3
+    },
+    {
+     "month": "2023-09",
+     "count": 12
+    },
+    {
+     "month": "2023-10",
+     "count": 9
+    },
+    {
+     "month": "2023-11",
+     "count": 7
+    },
+    {
+     "month": "2023-12",
+     "count": 10
+    },
+    {
+     "month": "2024-01",
+     "count": 7
+    },
+    {
+     "month": "2024-02",
+     "count": 3
+    },
+    {
+     "month": "2024-03",
+     "count": 9
+    },
+    {
+     "month": "2024-04",
+     "count": 8
+    },
+    {
+     "month": "2024-05",
+     "count": 42
+    },
+    {
+     "month": "2024-06",
+     "count": 28
+    },
+    {
+     "month": "2024-07",
+     "count": 36
+    },
+    {
+     "month": "2024-08",
+     "count": 68
+    },
+    {
+     "month": "2024-09",
+     "count": 38
+    },
+    {
+     "month": "2024-10",
+     "count": 17
+    },
+    {
+     "month": "2024-11",
+     "count": 18
+    },
+    {
+     "month": "2024-12",
+     "count": 60
+    },
+    {
+     "month": "2025-01",
+     "count": 103
+    },
+    {
+     "month": "2025-02",
+     "count": 113
+    },
+    {
+     "month": "2025-03",
+     "count": 72
+    },
+    {
+     "month": "2025-04",
+     "count": 79
+    },
+    {
+     "month": "2025-05",
+     "count": 50
+    },
+    {
+     "month": "2025-06",
+     "count": 39
+    },
+    {
+     "month": "2025-07",
+     "count": 31
+    },
+    {
+     "month": "2025-08",
+     "count": 33
+    },
+    {
+     "month": "2025-09",
+     "count": 41
+    },
+    {
+     "month": "2025-10",
+     "count": 44
+    },
+    {
+     "month": "2025-11",
+     "count": 31
+    },
+    {
+     "month": "2025-12",
+     "count": 35
+    },
+    {
+     "month": "2026-01",
+     "count": 30
+    },
+    {
+     "month": "2026-02",
+     "count": 53
+    },
+    {
+     "month": "2026-03",
+     "count": 50
+    },
+    {
+     "month": "2026-04",
+     "count": 53
+    },
+    {
+     "month": "2026-05",
+     "count": 41
+    },
+    {
+     "month": "2026-06",
+     "count": 37
+    },
+    {
+     "month": "2026-07",
+     "count": 55
+    },
+    {
+     "month": "2026-08",
+     "count": 43
+    },
+    {
+     "month": "2026-09",
+     "count": 47
+    },
+    {
+     "month": "2026-10",
+     "count": 48
+    },
+    {
+     "month": "2026-11",
+     "count": 10
+    }
+   ],
+   "sites": {
+    "AFETR": 8547,
+    "AFWTR": 4451,
+    "STARB": 26
+   },
+   "lastLaunchDate": "2026-10-31",
+   "arrivalRatePerDay90": 4.488888888888889,
+   "impliedRaiseDays": 20.495049504950494
+  }
+ }
+}

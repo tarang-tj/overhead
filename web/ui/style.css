@@ -1,0 +1,89 @@
+:root {
+  --bg: #05070d; --sheet: rgba(10, 14, 26, 0.86); --line: rgba(158, 197, 255, 0.18);
+  --text: #e8eef9; --muted: #9aa8c2; --leo: #f5a524; --starlink: #9ec5ff;
+  --ok: #7fd6a0; --bad: #ff8a80; --tab-h: 56px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; color: var(--text); }
+#scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+body.no-webgl #scene { display: none; }
+.overhead-ui { font: 15px/1.45 var(--font); color: var(--text); }
+.overhead-ui *, .overhead-ui *::before, .overhead-ui *::after { box-sizing: border-box; }
+.overhead-ui [hidden] { display: none !important; }
+.overhead-ui a { color: var(--starlink); }
+.overhead-ui .muted { color: var(--muted); font-size: 13px; }
+.overhead-ui h1 { font-size: 18px; letter-spacing: 0.2em; margin: 0; }
+.overhead-ui h2 { font-size: 18px; margin: 0 0 8px; }
+.overhead-ui h3 { font-size: 16px; margin: 0 0 8px; }
+.overhead-ui h4 { font-size: 13px; margin: 12px 0 4px; color: var(--muted); font-weight: 600; }
+.overhead-ui p { margin: 6px 0; }
+
+.top { position: fixed; top: 0; left: 0; right: 0; z-index: 5; padding: calc(8px + env(safe-area-inset-top)) 14px 8px; pointer-events: none; text-shadow: 0 1px 6px #000; }
+.top .subtitle { margin: 2px 0; font-size: 13px; color: var(--muted); max-width: 46ch; }
+.badge { display: inline-block; font-size: 12px; background: var(--sheet); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.stats { margin: 2px 0 0; }
+
+.panel { position: fixed; z-index: 4; left: 0; right: 0; bottom: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  max-height: 68vh; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 18px; background: var(--sheet);
+  border-top: 1px solid var(--line); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.panel.small { max-height: 40vh; }
+
+.tabbar { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding: 0 4px env(safe-area-inset-bottom); display: flex; align-items: stretch; gap: 2px; background: rgba(5, 7, 13, 0.94); border-top: 1px solid var(--line); }
+.tabbar [role="tab"] { flex: 1 1 0; min-width: 0; background: none; border: 0; border-bottom: 3px solid transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; padding: 0 2px; }
+.tabbar [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--starlink); }
+.tabbar .ghost { flex: 0 0 auto; align-self: center; font-size: 12px; padding: 6px 8px; }
+.overhead-ui button:focus-visible, .overhead-ui a:focus-visible, .overhead-ui input:focus-visible { outline: 2px solid var(--starlink); outline-offset: 2px; }
+
+.btn { background: rgba(158, 197, 255, 0.14); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; min-height: 40px; }
+.btn.ghost { background: none; }
+.look-surface { position: fixed; inset: 0; z-index: 1; display: none; touch-action: none; cursor: grab; }
+.look-surface.on { display: block; }
+.readout { font-size: 16px; font-weight: 600; margin: 4px 0 8px; }
+
+.line-cols { display: grid; grid-template-columns: 1fr; gap: 18px; }
+.line-col { min-width: 0; border-left: 3px solid var(--starlink); padding-left: 10px; }
+.line-col.leo { border-left-color: var(--leo); }
+.line-col.leo h3 { color: var(--leo); }
+.line-col.starlink h3 { color: var(--starlink); }
+.funnel, .sites, .passes { list-style: none; padding: 0; margin: 8px 0; }
+.funnel-row { display: grid; grid-template-columns: 84px 1fr 56px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
+.funnel-bar { height: 10px; background: rgba(255, 255, 255, 0.08); border-radius: 5px; overflow: hidden; }
+.funnel-bar span { display: block; height: 100%; background: var(--starlink); }
+.leo .funnel-bar span { background: var(--leo); }
+.funnel-count { text-align: right; font-variant-numeric: tabular-nums; }
+.implied { font-weight: 600; }
+.sites li { font-size: 13px; }
+.chart { margin: 8px 0 0; }
+.chart svg { width: 100%; height: auto; max-height: 56px; display: block; }
+.chart rect { fill: var(--starlink); }
+.leo .chart rect { fill: var(--leo); }
+.chart-decay rect { opacity: 0.55; }
+.chart figcaption { font-size: 11px; color: var(--muted); }
+.sources { margin-top: 14px; font-size: 12px; color: var(--muted); }
+.empty { color: var(--muted); }
+
+.tonight-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 6px; }
+.pass { display: grid; grid-template-columns: max-content auto 1fr; gap: 2px 8px; align-items: center; width: 100%; text-align: left; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; padding: 8px 10px; margin: 4px 0; cursor: pointer; }
+.pass.past { opacity: 0.5; }
+.pass-time { font-weight: 600; }
+.pass-dir, .pass-el { grid-column: 1 / -1; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.pass-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip { font-size: 11px; border-radius: 999px; padding: 1px 8px; border: 1px solid currentColor; }
+.chip.leo { color: var(--leo); } .chip.starlink { color: var(--starlink); }
+.share { margin-top: 12px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.share-text { margin: 0 0 8px; }
+.copy-status { margin-left: 10px; font-size: 13px; color: var(--ok); }
+
+@media (min-width: 760px) {
+  .panel { left: auto; right: 16px; bottom: calc(var(--tab-h) + 12px); width: min(560px, 46vw); max-height: 72vh; border: 1px solid var(--line); border-radius: 12px; }
+  #panel-line { width: min(920px, 70vw); }
+  .line-cols { grid-template-columns: 1fr 1fr; }
+  .tabbar { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, 100%); border-radius: 12px 12px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overhead-ui *, .overhead-ui *::before, .overhead-ui *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+.overhead-ui .stale { color: var(--bad); font-size: 13px; }
+.overhead-ui .pass-time { white-space: nowrap; }
+.overhead-ui .pass .chip { align-self: center; height: fit-content; white-space: nowrap; }
