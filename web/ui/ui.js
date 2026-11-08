@@ -13,10 +13,13 @@ export function badgeText(gpMeta, now = Date.now()) {
   if (!gpMeta || !gpMeta.fetchedAt) return "Orbit data age unknown";
   if (gpMeta.mode === "snapshot") return `Saved snapshot from ${formatLocalDate(gpMeta.fetchedAt)}`;
   const cached = gpMeta.mode === "cache" ? " (cached)" : "";
-  return `Orbit data from CelesTrak${cached}, ${ageSince(gpMeta.fetchedAt, now)} old`;
+  const age = ageSince(gpMeta.fetchedAt, now);
+  return age === "just now"
+    ? `Orbit data from CelesTrak${cached}, updated just now`
+    : `Orbit data from CelesTrak${cached}, ${age} old`;
 }
 
-export function mountUi({ root, line, passes, horizon, gpMeta, onMode, onLook, onHighlight, getStats }) {
+export function mountUi({ root, line, passes, horizon, gpMeta, onMode, onLook, onHighlight, onColorMode, getStats }) {
   const tonightState = { showAll: false };
   const badge = h("p", { class: "badge", role: "status" }, badgeText(gpMeta));
   const stats = h("p", { class: "stats muted" });
@@ -41,7 +44,7 @@ export function mountUi({ root, line, passes, horizon, gpMeta, onMode, onLook, o
     select(b.dataset.mode, true);
   } }, buttons, replay);
 
-  renderLinePanel(linePanel, line);
+  const lineApi = renderLinePanel(linePanel, line, { onColorMode: (m) => onColorMode?.(m) });
   renderTonightPanel(tonightPanel, passes, { onHighlight: (id) => onHighlight(id), state: tonightState });
   const look = mountLookControls({ surface, panel: lookPanel, onLook });
 
@@ -58,6 +61,7 @@ export function mountUi({ root, line, passes, horizon, gpMeta, onMode, onLook, o
     }
     for (const [k, el] of Object.entries(panels)) el.hidden = k !== m;
     look.setActive(m === "lookup");
+    lineApi.setColorMode(m === "line" ? "stage" : "constellation");
     root.dataset.mode = m;
   }
   function select(m, notify) { paint(m); if (notify) onMode(m); if (m !== "tonight") onHighlight(null); }

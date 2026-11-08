@@ -81,6 +81,7 @@ test("badge text per mode", () => {
   const now = Date.parse("2026-11-07T14:00:00Z");
   assert.equal(badgeText({ mode: "live", fetchedAt: "2026-11-07T12:00:00Z" }, now), "Orbit data from CelesTrak, 2 h old");
   assert.equal(badgeText({ mode: "cache", fetchedAt: "2026-11-07T12:00:00Z" }, now), "Orbit data from CelesTrak (cached), 2 h old");
+  assert.equal(badgeText({ mode: "live", fetchedAt: "2026-11-07T13:59:50Z" }, now), "Orbit data from CelesTrak, updated just now");
   assert.equal(badgeText({ mode: "snapshot", fetchedAt: "2026-11-06T20:00:00Z" }, now), "Saved snapshot from Nov 6, 2026");
   assert.equal(badgeText(null, now), "Orbit data age unknown");
 });

@@ -19,10 +19,10 @@ async function loadJson(path) {
   }
 }
 
-async function startRenderer(canvas, sats, horizon) {
+async function startRenderer(canvas, sats, horizon, line) {
   try {
     const { createOverheadRenderer } = await import("./render/renderer.js");
-    return await createOverheadRenderer({ canvas, sats, horizon });
+    return await createOverheadRenderer({ canvas, sats, horizon, line });
   } catch (err) {
     console.warn(`[main] 3D view unavailable: ${err?.message || err}`);
     state.errors.push(String(err?.message || err));
@@ -43,6 +43,7 @@ function setMode(mode) {
     return;
   }
   state.renderer.skipZoom?.();
+  state.renderer.setColorMode(mode === "line" ? "stage" : "constellation");
   state.renderer.setMode(mode === "line" ? "orbit" : mode);
 }
 
@@ -55,7 +56,7 @@ async function boot() {
     loadJson("web/data/horizon.json"),
   ]);
   state.gpMeta = { mode: gp.mode, fetchedAt: gp.fetchedAt, count: gp.sats.length };
-  state.renderer = await startRenderer(canvas, gp.sats, horizon);
+  state.renderer = await startRenderer(canvas, gp.sats, horizon, line);
 
   const { mountUi } = await import("./ui/ui.js");
   state.ui = mountUi({
@@ -64,6 +65,7 @@ async function boot() {
     onMode: setMode,
     onLook: (az, el, unc) => state.renderer?.setLook(az, el, unc),
     onHighlight: (id) => state.renderer?.highlight(id),
+    onColorMode: (m) => state.renderer?.setColorMode(m),
     getStats: () => state.renderer?.stats() ?? null,
   });
 

@@ -10,26 +10,13 @@ import { createEarth } from "./globe.js";
 import { createMarkers } from "./markers.js";
 import { createUwbPatch } from "./patch.js";
 import { createSatPoints, createHighlight } from "./sats.js";
+import { createStars } from "./stars.js";
+import { createTrails } from "./trails.js";
 import { createLookup } from "./lookup.js";
 import { placeZoomCamera, placeLookCamera, lookGroupMatrix, updateClip } from "./camera-rig.js";
 import { ZOOM_SECONDS, smoothstep } from "./zoom.js";
 
-function createStars(pixelRatio) {
-  const n = 3500, pos = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    const z = Math.random() * 2 - 1, th = Math.random() * 2 * Math.PI, s = Math.sqrt(1 - z * z);
-    pos.set([s * Math.cos(th) * 9e4, s * Math.sin(th) * 9e4, z * 9e4], i * 3);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const m = new THREE.PointsMaterial({ color: 0xffffff, size: 1.3 * pixelRatio, sizeAttenuation: false, transparent: true, depthWrite: false });
-  const p = new THREE.Points(g, m);
-  p.frustumCulled = false;
-  p.renderOrder = -5;
-  return p;
-}
-
-export async function createOverheadRenderer({ canvas, sats, horizon, now = () => new Date() }) {
+export async function createOverheadRenderer({ canvas, sats, horizon, line, now = () => new Date() }) {
   const satList = Array.isArray(sats) ? sats : [];
   const profile = horizon && Array.isArray(horizon.horizonElDeg) && horizon.horizonElDeg.length >= 3 ? horizon.horizonElDeg : null;
   if (!profile) console.warn("[renderer] no horizon profile, using a flat 0 degree horizon");
@@ -47,13 +34,14 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
   const patch = createUwbPatch(UWB.latDeg, UWB.lonDeg);
   earth.group.add(markers.group, patch.group);
   const stars = createStars(pixelRatio);
-  const satsObj = createSatPoints({ sats: satList, pixelRatio });
+  const satsObj = createSatPoints({ sats: satList, line, pixelRatio });
+  const trails = createTrails({ sats: satList, satsObj });
   const highlightObj = createHighlight(pixelRatio);
   const lookup = createLookup();
   lookup.setProfile(profile);
   lookup.setPeaks(horizon && horizon.peaks);
   lookup.group.matrixAutoUpdate = false;
-  scene.add(stars, earth.group, earth.atmosphere, satsObj.points, highlightObj.obj, lookup.group);
+  scene.add(stars, earth.group, earth.atmosphere, satsObj.points, trails.obj, highlightObj.obj, lookup.group);
 
   const controls = new OrbitControls(camera, canvas);
   Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, enablePan: false, minDistance: 7500, maxDistance: 90000, rotateSpeed: 0.6, enabled: false });
@@ -71,7 +59,10 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
   const propagator = createPropagator({ now });
   const off = propagator.onUpdate((res) => {
     satsObj.push(res, performance.now());
-    const c = countAboveHorizon(res.positions, res.flags, satsObj.constellationIdx, new Date(res.timeMs), profile);
+    const visible = [];
+    const c = countAboveHorizon(res.positions, res.flags, satsObj.constellationIdx, new Date(res.timeMs), profile, undefined, (i) => visible.push(i));
+    trails.setPicks(visible, res.flags);
+    if (mode === "orbit" && highlightIdx >= 0) trails.updateArc(highlightIdx, new Date(res.timeMs));
     stat = { propagated: res.valid, msPerSweep: res.ms, visibleAboveHorizon: { leo: c[0], starlink: c[1] } };
   });
   patch.ready.then(() => { patchReady = true; });
@@ -94,6 +85,7 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
     controls.enabled = next === "orbit";
     camera.up.set(0, 0, 1);
     camera.fov = isLook ? 65 : 45;
+    if (next === "orbit") trails.updateArc(highlightIdx, now());
     if (next !== "zoom" && zoomResolve) { finishZoom(); orbitPlaced = false; }
     if (next === "zoom") { zoomT = 0; orbitPlaced = false; }
     if (next === "orbit" && (wasLook || !orbitPlaced)) {
@@ -118,6 +110,8 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
     earth.group.rotation.z = gmst;
     earth.setSun(sunEciUnit(date));
     satsObj.update(tMs);
+    if (mode === "lookup" || mode === "tonight") trails.updateTails(true);
+    else if (mode !== "orbit" || highlightIdx < 0) trails.hide();
 
     if (mode === "zoom") {
       // Clock starts on the first frame after the campus imagery settled (or after 4 s).
@@ -173,8 +167,11 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
     },
     highlight(id) {
       highlightIdx = id != null && noradIndex.has(id) ? noradIndex.get(id) : -1;
+      if (mode === "orbit") trails.updateArc(highlightIdx, now());
       highlightObj.obj.visible = highlightIdx >= 0;
     },
+    /** "constellation" (Leo amber, Starlink blue) or "stage" (raising green, descending red, on station dimmed). */
+    setColorMode(m) { satsObj.recolor(m === "stage" ? "stage" : "constellation"); },
     stats: () => ({ ...stat }),
     litFraction() {
       try {
@@ -198,7 +195,7 @@ export async function createOverheadRenderer({ canvas, sats, horizon, now = () =
       off();
       propagator.dispose();
       controls.dispose();
-      earth.dispose(); patch.dispose(); markers.dispose(); satsObj.dispose(); highlightObj.dispose(); lookup.dispose();
+      earth.dispose(); patch.dispose(); markers.dispose(); satsObj.dispose(); trails.dispose(); highlightObj.dispose(); lookup.dispose();
       stars.geometry.dispose(); stars.material.dispose(); probe.dispose();
       renderer.dispose();
     },

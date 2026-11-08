@@ -41,17 +41,42 @@ function column(c) {
     c.fcc ? h("p", { class: "fcc muted" }, c.fcc) : null);
 }
 
-export function renderLinePanel(el, line) {
+const SWATCH = { leo: "#f5a524", starlink: "#9ec5ff", raising: "#7fd6a0", descending: "#ff8a80" };
+const LEGENDS = {
+  constellation: [["leo", "Amazon Leo"], ["starlink", "Starlink"]],
+  stage: [["raising", "Raising"], ["descending", "Descending"], ["leo", "On station (dimmed)"]],
+};
+
+/** "Color satellites by" toggle plus legend. Returns { el, setMode(mode) } (mode is applied without notifying). */
+export function colorToggle(onColorMode) {
+  const legend = h("ul", { class: "legend", "aria-label": "Satellite colors" });
+  const buttons = {};
+  const setMode = (mode) => {
+    for (const [k, b] of Object.entries(buttons)) b.setAttribute("aria-pressed", String(k === mode));
+    empty(legend).append(...LEGENDS[mode].map(([key, text]) =>
+      h("li", {}, h("span", { class: "swatch", style: `background:${SWATCH[key]}`, "aria-hidden": "true" }), text)));
+  };
+  const btn = (mode, label) => (buttons[mode] = h("button", { type: "button", class: "btn ghost", "aria-pressed": "false",
+    onclick: () => { setMode(mode); onColorMode(mode); } }, label));
+  const el = h("div", { class: "color-toggle" }, h("span", { class: "muted" }, "Color satellites by: "),
+    btn("constellation", "Constellation"), btn("stage", "Stage"), legend);
+  setMode("constellation");
+  return { el, setMode };
+}
+
+export function renderLinePanel(el, line, { onColorMode = () => {} } = {}) {
   empty(el);
+  const toggle = colorToggle(onColorMode);
   const m = lineModel(line);
-  el.append(h("h2", {}, "The Line"));
+  el.append(h("h2", {}, "The Line"), toggle.el);
   if (!m) {
     el.append(h("p", { class: "empty" }, "Supply chain data is not available yet. Check back after the next data refresh."));
-    return;
+    return { setColorMode: toggle.setMode };
   }
   el.append(
     h("p", { class: "muted lede" }, "Each constellation as a supply chain: factory, launch site, raising, on station, retired."),
     h("div", { class: "line-cols" }, m.columns.map(column)),
     h("footer", { class: "sources" }, h("span", {}, m.generatedText + ". Sources: "),
       m.sources.map((s) => [link(s.url, s.name), " "])));
+  return { setColorMode: toggle.setMode };
 }

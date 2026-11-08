@@ -87,3 +87,10 @@ body.no-webgl #scene { display: none; }
 .overhead-ui .stale { color: var(--bad); font-size: 13px; }
 .overhead-ui .pass-time { white-space: nowrap; }
 .overhead-ui .pass .chip { align-self: center; height: fit-content; white-space: nowrap; }
+
+/* Color-by toggle + legend (The Line) */
+.color-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
+.color-toggle .btn { min-height: 32px; padding: 4px 10px; }
+.color-toggle .btn[aria-pressed="true"] { background: rgba(158, 197, 255, 0.28); border-color: #9ec5ff; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; margin: 0; padding: 0; width: 100%; }
+.legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }

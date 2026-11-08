@@ -54,3 +54,12 @@ test("GP row without mean motion falls back to SATCAT apogee/perigee", () => {
   const c = buildConstellation({ key: "leo", label: "x", catalogName: "KUIPER", gp: [row], satcat, now });
   assert.equal(c.inOrbit, 1);
 });
+
+test("stageIds lists exactly the raising and descending satellites, nothing else", () => {
+  const c = run();
+  assert.equal(c.stageIds.raising.length, c.stages.raising);
+  assert.equal(c.stageIds.descending.length, c.stages.descending);
+  const known = new Set(gp.map((g) => g.NORAD_CAT_ID));
+  for (const id of [...c.stageIds.raising, ...c.stageIds.descending]) assert.ok(known.has(id));
+  assert.equal(new Set([...c.stageIds.raising, ...c.stageIds.descending]).size, c.stages.raising + c.stages.descending);
+});

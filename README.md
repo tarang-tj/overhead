@@ -21,9 +21,9 @@ Redmond      Vandenberg
 | Mode | What you get |
 |---|---|
 | **Intro** | One continuous zoom from UW Bothell (USGS aerial imagery) up past Kirkland and Redmond, then out to the shells where the fleets fly. |
-| **Orbit** | The real Earth (NASA GIBS imagery: yesterday's day side, Black Marble night lights) with every satellite at its current position, propagated with SGP4 once a second in a Web Worker. |
-| **The Line** | Stage counts, launches and decays by month, launch sites, and a Little's Law read on each line. |
-| **Look Up** | The sky from campus with the real horizon: the Cascades, Rainier, Baker and the Olympics, from the Copernicus elevation model. On a phone, point it at the sky. On desktop, drag to look around. |
+| **Orbit** | The real Earth (NASA GIBS imagery: yesterday's day side, Black Marble night lights) with every satellite at its current position, propagated with SGP4 once a second in a Web Worker. Tap a pass in Tonight to highlight it with a 10-minute orbit arc. |
+| **The Line** | Stage counts, launches and decays by month, launch sites, and a Little's Law read on each line. Color the globe by stage: raising green, descending red. |
+| **Look Up** | The sky from campus with the real horizon: the Cascades, Rainier, Baker and the Olympics, from the Copernicus elevation model. On a phone, point it at the sky. On desktop, drag to look around. Short tails show which way each satellite is moving. |
 | **Tonight** | The passes you can actually see from campus in the next 24 hours, plus a share card. |
 
 ## The numbers (CelesTrak, 2026-11-07)
@@ -59,7 +59,7 @@ Launched counts include one payload per constellation that has no decay date and
 npm install
 npm run serve        # http://127.0.0.1:4173
 npm run gate         # lint + unit tests + headless boot probe
-npm run data         # rebuild web/data from CelesTrak and Open-Meteo (policy-compliant cache)
+npm run data         # refresh web/data from CelesTrak and Open-Meteo (policy-compliant cache)
 ```
 
 There is no bundler: it is plain ES modules plus an importmap for three.js and satellite.js. Data credits and terms are in [DATA-CREDITS.md](DATA-CREDITS.md).

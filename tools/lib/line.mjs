@@ -39,9 +39,13 @@ export function buildConstellation({ key, label, catalogName, gp, satcat, now })
   const altitudes = gp.map((g) => altitudeKm(g, byId.get(g.NORAD_CAT_ID)));
   const shells = findShells(altitudes);
   const stages = { raising: 0, onStation: 0, descending: 0, unknown: 0 };
+  // On station is the default for the renderer, so only the other two stages list ids.
+  const stageIds = { raising: [], descending: [] };
   gp.forEach((g, i) => {
     const launch = byId.get(g.NORAD_CAT_ID)?.LAUNCH_DATE;
-    stages[classifyStage(altitudes[i], shells, launch, now)] += 1;
+    const stage = classifyStage(altitudes[i], shells, launch, now);
+    stages[stage] += 1;
+    if (stageIds[stage]) stageIds[stage].push(g.NORAD_CAT_ID);
   });
   const launchDates = payloads.map((r) => day(r.LAUNCH_DATE)).filter(Boolean);
   const decayDates = payloads.map((r) => day(r.DECAY_DATE)).filter(Boolean);
@@ -53,6 +57,7 @@ export function buildConstellation({ key, label, catalogName, gp, satcat, now })
     catalogName,
     factory: FACTORIES[key],
     shells,
+    stageIds,
     stages: { ...stages, decayed: decayDates.length, launched: payloads.length },
     inOrbit: gp.length,
     launchesByMonth: countByMonth(launchDates),

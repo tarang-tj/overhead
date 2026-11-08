@@ -65,7 +65,7 @@ export function horizonAt(profile, azDeg) {
  * Float32Array, flags marks invalid (2). Topocentric dot products, no trig per
  * axis beyond atan2/asin.
  */
-export function countAboveHorizon(positions, flags, constellationIdx, date, profile, obs = UWB) {
+export function countAboveHorizon(positions, flags, constellationIdx, date, profile, obs = UWB, onVisible = null) {
   const basis = enuBasisEci(obs.latDeg, obs.lonDeg, date);
   const o = observerEci(obs.latDeg, obs.lonDeg, obs.heightKm, date);
   const counts = [0, 0];
@@ -80,7 +80,7 @@ export function countAboveHorizon(positions, flags, constellationIdx, date, prof
     const e = dx * basis.east.x + dy * basis.east.y + dz * basis.east.z;
     const nn = dx * basis.north.x + dy * basis.north.y + dz * basis.north.z;
     const az = ((Math.atan2(e, nn) / D2R) % 360 + 360) % 360;
-    if (el >= horizonAt(profile, az)) counts[constellationIdx[i]]++;
+    if (el >= horizonAt(profile, az)) { counts[constellationIdx[i]]++; if (onVisible) onVisible(i); }
   }
   return counts;
 }
