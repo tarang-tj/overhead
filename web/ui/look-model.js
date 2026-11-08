@@ -37,7 +37,7 @@ export function uncertaintyFrom(accuracy) {
 }
 
 export function readoutText(az, el, unc) {
-  const base = `Facing ${direction16(az)} ${Math.round(norm360(az))} deg, ${el >= 0 ? "up" : "down"} ${Math.abs(Math.round(el))} deg`;
+  const base = `Facing ${direction16(az)} ${Math.round(norm360(az))} deg, ${Math.round(el) === 0 ? "level with the horizon" : `${el > 0 ? "up" : "down"} ${Math.abs(Math.round(el))} deg`}`;
   return unc === null || unc === undefined ? base : `${base}. Compass accuracy about ${Math.round(unc)} deg`;
 }
 
