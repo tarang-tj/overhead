@@ -4,20 +4,30 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { UWB } from "../web/orbit/sky.js";
-import { CONSTELLATIONS, fetchCelestrak, gpUrl } from "./lib/celestrak.mjs";
+import { fetchCelestrak, gpUrl } from "./lib/celestrak.mjs";
 import { findPasses, makeTimes, satrecOrNull, sunTimeline } from "./lib/passes.mjs";
 import { OUT_DIR } from "./build-line.mjs";
 
 const round = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 const argOf = (name) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
 
+// Bounded set for CI time: v1 leo + starlink, plus stations. Keys appear as `constellation` in passes.json.
+export const PASS_GROUPS = { leo: "kuiper", starlink: "starlink", stations: "stations" };
+
 export async function buildPasses({ start = new Date(), hours = 24, stepSec = 20, gpByKey, keepAll = false } = {}) {
   const times = makeTimes(start, hours, stepSec);
   const sun = sunTimeline(times);
   const passes = [];
   const counts = {};
-  for (const key of Object.keys(CONSTELLATIONS)) {
-    const rows = gpByKey?.[key] ?? (await fetchCelestrak(gpUrl(CONSTELLATIONS[key].group))).data;
+  for (const key of Object.keys(PASS_GROUPS)) {
+    let rows;
+    try {
+      rows = gpByKey?.[key] ?? (await fetchCelestrak(gpUrl(PASS_GROUPS[key]))).data;
+    } catch (e) {
+      if (key !== "stations") throw e; // the stations group name is unverified, so it may be skipped
+      console.warn(`passes: stations skipped: ${e.message}`);
+      continue;
+    }
     counts[key] = { passes: 0, visible: 0 };
     for (const omm of rows) {
       const rec = satrecOrNull(omm);
@@ -35,14 +45,14 @@ export async function buildPasses({ start = new Date(), hours = 24, stepSec = 20
     }
   }
   passes.sort((a, b) => a.peak.localeCompare(b.peak));
-  // Keep the file small enough to ship: every Leo pass, but only the visible Starlink
+  // Keep the file small enough to ship: every Leo and stations pass, but only the visible Starlink
   // passes (counts below still cover all of them).
-  const kept = keepAll ? passes : passes.filter((p) => p.visible || p.constellation === "leo");
+  const kept = keepAll ? passes : passes.filter((p) => p.visible || p.constellation !== "starlink");
   return {
     generatedAt: new Date().toISOString(), observer: UWB,
     windowStart: times[0].toISOString(), windowEnd: times.at(-1).toISOString(),
     minElDeg: 10, stepSec, passes: kept, counts,
-    note: keepAll ? undefined : "passes lists every Leo pass and only the visible Starlink passes; counts cover all",
+    note: keepAll ? undefined : "passes lists every Leo and stations pass and only the visible Starlink passes; counts cover all",
   };
 }
 

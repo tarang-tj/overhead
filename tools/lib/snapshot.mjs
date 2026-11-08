@@ -13,12 +13,21 @@ export function minimalOmm(row) {
   return out;
 }
 
-export function buildSnapshotObject({ gpByKey, fetchedAt }) {
+/**
+ * Snapshot of the active group: { fetchedAt, source, sats: [{ c, omm }] } where
+ * c is the category key (default "other"). Rows missing a required field are
+ * skipped and counted, so one bad record cannot sink a 14k-row build.
+ */
+export function buildSnapshotObject({ rows, categoryByNorad = new Map(), fetchedAt }) {
   const sats = [];
-  for (const [c, rows] of Object.entries(gpByKey)) for (const r of rows) sats.push({ c, omm: minimalOmm(r) });
+  let skipped = 0;
+  for (const r of rows) {
+    try { sats.push({ c: categoryByNorad.get(r.NORAD_CAT_ID) ?? "other", omm: minimalOmm(r) }); } catch { skipped += 1; }
+  }
   return {
     fetchedAt,
-    source: "https://celestrak.org/NORAD/elements/gp.php?GROUP=kuiper|starlink&FORMAT=json",
+    source: "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json",
     sats,
+    skipped,
   };
 }

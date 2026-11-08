@@ -1,0 +1,23 @@
+name: data-artifact
+# Manual only: run the data pipeline on a GitHub runner (one polite download
+# per CelesTrak URL) and upload web/data as an artifact, so data can be
+# refreshed for development without downloading from a developer machine.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node tools/build-all.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-data
+          path: web/data
