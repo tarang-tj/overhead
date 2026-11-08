@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import * as satLib from "satellite.js";
 import { eciAt } from "../orbit/sky.js";
-import { LEO_RGB, STARLINK_RGB } from "./sats.js";
+import { CATEGORY_RGB } from "./categories.js";
 
 export const MAX_TRAILS = 300;
 export const TRAIL_SECONDS = 12;
@@ -62,18 +62,20 @@ export function createTrails({ sats, satsObj }) {
     /** Choose which visible satellites get trails (sunlit first). `visible` = indices above the horizon. */
     setPicks(visible, flags) {
       const lit = visible.filter((i) => flags[i] === 0), dark = visible.filter((i) => flags[i] === 1);
-      picks = lit.concat(dark).slice(0, MAX_TRAILS);
+      picks = lit.concat(dark); // category filter and MAX_TRAILS are applied per frame in updateTails
     },
     /** Look Up / Tonight: rebuild every frame from the lerped head positions. */
     updateTails(on) {
-      lines.visible = on && picks.length > 0;
+      const shown = satsObj.shown;
+      const use = (shown ? picks.filter((i) => shown[satsObj.categoryIdx[i]]) : picks).slice(0, MAX_TRAILS);
+      lines.visible = on && use.length > 0;
       if (!lines.visible) return;
       let at = 0;
-      for (const i of picks) {
+      for (const i of use) {
         satsObj.positionOf(i, head); satsObj.velocityOf(i, vel);
         at = writeTail(pos, alpha, at, head, vel, satsObj.flags[i] === 1 ? 0.35 : 0.9);
       }
-      const rgbs = picks.map((i) => (satsObj.constellationIdx[i] === 0 ? LEO_RGB : STARLINK_RGB));
+      const rgbs = use.map((i) => (CATEGORY_RGB[satsObj.categoryIdx[i]]));
       paint(at, (v) => rgbs[Math.floor(v / (TRAIL_SEGS * 2))]);
     },
     /** Orbit: arc for one satellite (index or -1), propagated around `date`. */
@@ -100,7 +102,7 @@ export function createTrails({ sats, satsObj }) {
           n++;
         }
       }
-      const c = satsObj.constellationIdx[idx] === 0 ? LEO_RGB : STARLINK_RGB;
+      const c = CATEGORY_RGB[satsObj.categoryIdx[idx]];
       paint(n, () => c);
     },
     hide() { lines.visible = false; },

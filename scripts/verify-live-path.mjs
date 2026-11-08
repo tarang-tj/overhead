@@ -17,7 +17,9 @@ const cached = (url) => {
   const raw = JSON.parse(readFileSync(file, "utf8"));
   return JSON.stringify(raw.data ?? raw);
 };
-const bodies = { kuiper: cached(gpUrl("kuiper")), starlink: cached(gpUrl("starlink")) };
+// The v2 client asks for GROUP=active; answer with the real cached Leo and
+// Starlink responses combined (a subset of active, real records).
+const activeBody = JSON.stringify([...JSON.parse(cached(gpUrl("kuiper"))), ...JSON.parse(cached(gpUrl("starlink")))]);
 
 const server = createStaticServer();
 server.listen(0, "127.0.0.1");
@@ -31,10 +33,9 @@ try {
   const served = [];
   await page.route("https://celestrak.org/**", (route) => {
     const u = route.request().url();
-    const g = u.includes("GROUP=kuiper") ? "kuiper" : u.includes("GROUP=starlink") ? "starlink" : null;
-    if (!g) return route.fulfill({ status: 404, body: "" });
-    served.push(g);
-    return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: bodies[g] });
+    if (!u.includes("GROUP=active")) return route.fulfill({ status: 404, body: "" });
+    served.push("active");
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: activeBody });
   });
   await page.goto(`${base}/?mode=orbit`, { waitUntil: "load" });
   await page.waitForFunction(() => window.__oh?.ready === true, null, { timeout: 60000 });
@@ -42,7 +43,7 @@ try {
   const badge = await page.evaluate(() => document.querySelector(".badge")?.textContent || "");
   assert.equal(meta.mode, "live", `expected live mode, got ${meta.mode}`);
   assert.ok(meta.count > 11000, `only ${meta.count} satellites`);
-  assert.deepEqual(served.sort(), ["kuiper", "starlink"]);
+  assert.deepEqual(served, ["active"]);
   assert.match(badge, /CelesTrak/);
   // Reload: both groups must now come from the browser cache, with no new request.
   served.length = 0;

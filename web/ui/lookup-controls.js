@@ -1,9 +1,9 @@
 // Look Up controls: phone orientation (with iOS permission gesture) or drag/arrow keys on desktop.
 import { h, empty } from "./dom.js";
-import { pointingFromOrientation, alphaFromCompassHeading, uncertaintyFrom, readoutText, ACCURACY_NOTE, clampLook, throttle } from "./look-model.js";
+import { isTap, pointingFromOrientation, alphaFromCompassHeading, uncertaintyFrom, readoutText, ACCURACY_NOTE, clampLook, throttle } from "./look-model.js";
 
 /** surface: full-screen element that takes drag input. panel: small controls box. */
-export function mountLookControls({ surface, panel, onLook }) {
+export function mountLookControls({ surface, panel, onLook, onSkyTap }) {
   let look = { az: 0, el: 35 }, unc = null, sensorOn = false, active = false;
   const readout = h("p", { class: "readout", role: "status", "aria-live": "off" });
   const note = h("p", { class: "muted" });
@@ -12,14 +12,24 @@ export function mountLookControls({ surface, panel, onLook }) {
 
   // Drag to look (mouse, touch, pen). Dragging right turns the view left, like grabbing the sky.
   let drag = null;
-  const down = (e) => { if (!active || sensorOn) return; drag = { x: e.clientX, y: e.clientY }; surface.setPointerCapture?.(e.pointerId); };
+  let tapStart = null;
+  const down = (e) => {
+    if (!active) return;
+    tapStart = { x: e.clientX, y: e.clientY, t: Date.now() };
+    if (sensorOn) return;
+    drag = { x: e.clientX, y: e.clientY }; surface.setPointerCapture?.(e.pointerId);
+  };
   const move = (e) => {
     if (!drag) return;
     const k = 0.25;
     apply(look.az - (e.clientX - drag.x) * k, look.el + (e.clientY - drag.y) * k, null);
     drag = { x: e.clientX, y: e.clientY };
   };
-  const up = () => { drag = null; };
+  const up = (e) => {
+    drag = null;
+    const start = tapStart; tapStart = null;
+    if (e?.type === "pointerup" && onSkyTap && isTap(start, { x: e.clientX, y: e.clientY, t: Date.now() })) onSkyTap(e.clientX, e.clientY);
+  };
   const key = (e) => {
     if (!active || sensorOn || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "")) return;
     const step = e.shiftKey ? 15 : 5;
@@ -72,11 +82,13 @@ export function mountLookControls({ surface, panel, onLook }) {
   const hasSensor = typeof window !== "undefined" && "DeviceOrientationEvent" in window;
   const btn = h("button", { type: "button", class: "btn", onclick: () => (sensorOn ? stopSensors() : startSensors()) }, "Use phone compass");
 
-  empty(panel).append(h("h2", {}, "Look Up"), readout, hasSensor ? btn : null, note);
+  empty(panel).append(...[h("h2", {}, "Look Up"), readout, hasSensor ? btn : null, note].filter(Boolean));
   note.textContent = "Drag to look around, or use the arrow keys (Shift for bigger steps).";
   readout.textContent = readoutText(look.az, look.el, null);
 
   return {
+    /** Point the view at an az/el (used by "Show in sky"); reports through onLook like a drag. */
+    lookAt(az, el) { apply(az, el, null); },
     setActive(on) { active = on; surface.classList.toggle("on", on); if (on) emit(); },
     dispose() {
       stopSensors();

@@ -23,10 +23,10 @@ export function placeZoomCamera(camera, t, gmst) {
   return pose.altKm;
 }
 
-/** Observer-at-UWB camera looking (az, el). Returns the ENU basis + observer ECI for the lookup group. */
-export function placeLookCamera(camera, azDeg, elDeg, date) {
-  const basis = enuBasisEci(UWB.latDeg, UWB.lonDeg, date);
-  const o = observerEci(UWB.latDeg, UWB.lonDeg, UWB.heightKm, date);
+/** Observer camera looking (az, el). Returns the ENU basis + observer ECI for the lookup group. */
+export function placeLookCamera(camera, azDeg, elDeg, date, obs = UWB) {
+  const basis = enuBasisEci(obs.latDeg, obs.lonDeg, date);
+  const o = observerEci(obs.latDeg, obs.lonDeg, obs.heightKm ?? 0, date);
   const dir = lookDirEci(basis, azDeg, elDeg);
   camera.up.set(basis.up.x, basis.up.y, basis.up.z);
   camera.position.set(o.x, o.y, o.z);
@@ -49,4 +49,15 @@ export function updateClip(camera, lookup) {
   camera.far = 3e5;
   camera.updateProjectionMatrix();
   return alt;
+}
+
+/** Swing an orbiting camera a fraction `k` of the way toward facing `target` (keeps its distance). Returns remaining angle (rad). */
+export function easeToward(camera, target, k = 0.06) {
+  const dist = camera.position.length(), tl = target.length();
+  if (!dist || !tl) return 0;
+  const dir = camera.position.clone().multiplyScalar(1 / dist);
+  const want = target.clone().multiplyScalar(1 / tl);
+  const left = Math.acos(Math.min(1, Math.max(-1, dir.dot(want))));
+  camera.position.copy(dir.lerp(want, k).normalize().multiplyScalar(dist));
+  return left;
 }

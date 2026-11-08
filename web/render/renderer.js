@@ -1,11 +1,17 @@
 // OVERHEAD renderer (interfaces.md). Scene axes = ECI, 1 unit = 1 km.
 // Tonight mode reuses the Look Up scene (the Tonight panel steers it via setLook).
+// Time (setTime/setSpeed) and observer (setObserver) drive everything: propagation, sun, globe spin, look geometry.
 // Needs the importmap entries: three, three/addons/, satellite.js.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { sunEciUnit, sunElevationDeg, UWB } from "../orbit/sky.js";
 import { createPropagator } from "../orbit/propagator.js";
-import { gmstRad, countAboveHorizon } from "./frames.js";
+import { gmstRad } from "./frames.js";
+import { createSimClock } from "./sim-clock.js";
+import { createSweepStats } from "./sweep-stats.js";
+import { filterMask } from "./categories.js";
+import { createQueries } from "./queries.js";
+import { createLitProbe } from "./lit-probe.js";
 import { createEarth } from "./globe.js";
 import { createMarkers } from "./markers.js";
 import { createUwbPatch } from "./patch.js";
@@ -13,66 +19,62 @@ import { createSatPoints, createHighlight } from "./sats.js";
 import { createStars } from "./stars.js";
 import { createTrails } from "./trails.js";
 import { createLookup } from "./lookup.js";
-import { placeZoomCamera, placeLookCamera, lookGroupMatrix, updateClip } from "./camera-rig.js";
-import { ZOOM_SECONDS, smoothstep } from "./zoom.js";
+import { placeZoomCamera, placeLookCamera, lookGroupMatrix, updateClip, easeToward } from "./camera-rig.js";
+import { smoothstep } from "./zoom.js";
+import { createZoomDriver } from "./zoom-driver.js";
 
 export async function createOverheadRenderer({ canvas, sats, horizon, line, now = () => new Date() }) {
   const satList = Array.isArray(sats) ? sats : [];
-  const profile = horizon && Array.isArray(horizon.horizonElDeg) && horizon.horizonElDeg.length >= 3 ? horizon.horizonElDeg : null;
+  const profileOf = (h) => (h && Array.isArray(h.horizonElDeg) && h.horizonElDeg.length >= 3 ? h.horizonElDeg : null);
+  let obs = UWB, profile = profileOf(horizon);
   if (!profile) console.warn("[renderer] no horizon profile, using a flat 0 degree horizon");
+  const sim = createSimClock(now);
   const pixelRatio = Math.min(globalThis.devicePixelRatio || 1, 2);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(pixelRatio);
-  renderer.setClearColor(0x000000, 1);
+  renderer.setPixelRatio(pixelRatio); renderer.setClearColor(0x000000, 1);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 1, 1, 3e5);
-  camera.up.set(0, 0, 1);
 
-  const earth = createEarth(now());
-  const markers = createMarkers();
-  const patch = createUwbPatch(UWB.latDeg, UWB.lonDeg);
+  const earth = createEarth(sim.now()), markers = createMarkers(), patch = createUwbPatch(UWB.latDeg, UWB.lonDeg), stars = createStars(pixelRatio);
   earth.group.add(markers.group, patch.group);
-  const stars = createStars(pixelRatio);
   const satsObj = createSatPoints({ sats: satList, line, pixelRatio });
   const trails = createTrails({ sats: satList, satsObj });
-  const highlightObj = createHighlight(pixelRatio);
-  const lookup = createLookup();
-  lookup.setProfile(profile);
-  lookup.setPeaks(horizon && horizon.peaks);
-  lookup.group.matrixAutoUpdate = false;
+  const highlightObj = createHighlight(pixelRatio);  const lookup = createLookup();
+  lookup.setProfile(profile); lookup.setPeaks(profile && horizon.peaks); lookup.group.matrixAutoUpdate = false;
   scene.add(stars, earth.group, earth.atmosphere, satsObj.points, trails.obj, highlightObj.obj, lookup.group);
 
   const controls = new OrbitControls(camera, canvas);
   Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, enablePan: false, minDistance: 7500, maxDistance: 90000, rotateSpeed: 0.6, enabled: false });
 
-  const noradIndex = new Map(satList.map((s, i) => [s.noradId, i]));
   const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const probe = new THREE.WebGLRenderTarget(64, 40);
+  const probe = createLitProbe(renderer, scene, camera);
 
   let mode = "orbit", look = { az: 0, el: 25, unc: null };
-  let zoomT = 0, zoomStart = null, zoomWaitFrom = null, zoomElapsed = 0, lastFrameMs = performance.now(), patchReady = false, zoomResolve = null, zoomPromise = null;
-  let stat = { propagated: 0, msPerSweep: 0, visibleAboveHorizon: { leo: 0, starlink: 0 } };
-  let highlightIdx = -1, raf = 0, disposed = false, orbitPlaced = false;
+  let lastFrameMs = performance.now();
+  const zoom = createZoomDriver(patch.ready, () => { orbitPlaced = true; });
+  let highlightIdx = -1, raf = 0, disposed = false, orbitPlaced = false, easing = false, snapN = 0, sweepMs = 0;
   const tmp = new THREE.Vector3();
 
-  const propagator = createPropagator({ now });
+  const q = createQueries({ sats: satList, satsObj, camera, canvas, getObs: () => obs, getMode: () => mode, simNow: sim.now, getSweepMs: () => sweepMs, getProfile: () => profile });
+  const noradIndex = q.noradIndex;
+  const propagator = createPropagator({ now: sim.now });
+  const census = createSweepStats({ satsObj, trails, getObs: () => obs, getProfile: () => profile });
   const off = propagator.onUpdate((res) => {
-    satsObj.push(res, performance.now());
-    const visible = [];
-    const c = countAboveHorizon(res.positions, res.flags, satsObj.constellationIdx, new Date(res.timeMs), profile, undefined, (i) => visible.push(i));
-    trails.setPicks(visible, res.flags);
+    sweepMs = res.timeMs;
+    satsObj.push(res, performance.now(), snapN > 0);
+    if (snapN > 0) snapN--;
+    census.run(res);
     if (mode === "orbit" && highlightIdx >= 0) trails.updateArc(highlightIdx, new Date(res.timeMs));
-    stat = { propagated: res.valid, msPerSweep: res.ms, visibleAboveHorizon: { leo: c[0], starlink: c[1] } };
   });
-  patch.ready.then(() => { patchReady = true; });
+  /** Sim time jumped or changed speed: resweep now, snap instead of lerping, and size the sweep cadence to the speed. */
+  function clockChanged() {
+    snapN = 2;
+    propagator.setIntervalMs(sim.speed > 1 ? 100 : 1000);
+    propagator.tickNow();
+  }
   if (satList.length) propagator.start(satList);
   else console.warn("[renderer] no satellites supplied");
-
-  function finishZoom() {
-    zoomT = 1; zoomStart = null; zoomWaitFrom = null; orbitPlaced = true;
-    if (zoomResolve) { zoomResolve(); zoomResolve = null; zoomPromise = null; }
-  }
 
   function applyMode(next) {
     if (!["zoom", "orbit", "lookup", "tonight"].includes(next)) { console.warn(`[renderer] unknown mode ${next}`); return; }
@@ -85,11 +87,11 @@ export async function createOverheadRenderer({ canvas, sats, horizon, line, now 
     controls.enabled = next === "orbit";
     camera.up.set(0, 0, 1);
     camera.fov = isLook ? 65 : 45;
-    if (next === "orbit") trails.updateArc(highlightIdx, now());
-    if (next !== "zoom" && zoomResolve) { finishZoom(); orbitPlaced = false; }
-    if (next === "zoom") { zoomT = 0; orbitPlaced = false; }
+    if (next === "orbit") trails.updateArc(highlightIdx, sim.now());
+    if (next !== "zoom" && zoom.pending) { zoom.finish(); orbitPlaced = false; }
+    if (next === "zoom") { zoom.reset(); orbitPlaced = false; }
     if (next === "orbit" && (wasLook || !orbitPlaced)) {
-      placeZoomCamera(camera, 1, gmstRad(now())); controls.target.set(0, 0, 0); controls.update(); orbitPlaced = true;
+      placeZoomCamera(camera, 1, gmstRad(sim.now())); controls.target.set(0, 0, 0); controls.update(); orbitPlaced = true;
     }
     camera.updateProjectionMatrix();
   }
@@ -104,9 +106,10 @@ export async function createOverheadRenderer({ canvas, sats, horizon, line, now 
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
-    const date = now();
+    const date = sim.now();
     const gmst = gmstRad(date);
     const sunEl = sunElevationDeg(date);
+    const lookSunEl = obs === UWB ? sunEl : sunElevationDeg(date, obs);
     earth.group.rotation.z = gmst;
     earth.setSun(sunEciUnit(date));
     satsObj.update(tMs);
@@ -114,24 +117,18 @@ export async function createOverheadRenderer({ canvas, sats, horizon, line, now 
     else if (mode !== "orbit" || highlightIdx < 0) trails.hide();
 
     if (mode === "zoom") {
-      // Clock starts on the first frame after the campus imagery settled (or after 4 s).
-      if (zoomStart === null && zoomWaitFrom !== null && (patchReady || tMs - zoomWaitFrom > 4000)) {
-        zoomStart = tMs; zoomWaitFrom = null; zoomElapsed = 0;
-      }
-      if (zoomStart !== null) {
-        // Cap each step so a stalled frame (tile decode, hidden tab, slow GPU) never skips the shot.
-        zoomElapsed += Math.min(tMs - lastFrameMs, 200);
-        zoomT = Math.min(1, zoomElapsed / (ZOOM_SECONDS * 1000));
-        if (zoomT >= 1) finishZoom();
-      }
-      placeZoomCamera(camera, zoomT, gmst);
+      placeZoomCamera(camera, zoom.step(tMs, lastFrameMs), gmst);
     } else if (mode === "orbit") {
+      if (easing && highlightIdx >= 0) {
+        satsObj.positionOf(highlightIdx, tmp);
+        if (easeToward(camera, tmp, 0.05) < 0.02) easing = false;
+      }
       controls.update();
     } else {
-      const { basis, origin } = placeLookCamera(camera, look.az, look.el, date);
+      const { basis, origin } = placeLookCamera(camera, look.az, look.el, date, obs);
       lookGroupMatrix(basis, origin, lookup.group.matrix);
       lookup.group.matrixWorldNeedsUpdate = true;
-      const sky = lookup.setSky(sunEl);
+      const sky = lookup.setSky(lookSunEl);
       stars.material.opacity = sky.starAlpha * 0.55;
     }
     if (mode === "zoom" || mode === "orbit") stars.material.opacity = 1;
@@ -154,41 +151,44 @@ export async function createOverheadRenderer({ canvas, sats, horizon, line, now 
   return {
     setMode: applyMode,
     playZoom() {
-      if (zoomPromise) return zoomPromise;
+      if (zoom.promise) return zoom.promise;
       applyMode("zoom");
-      if (reduceMotion()) { zoomT = 1; return Promise.resolve(); }
-      zoomPromise = new Promise((res) => { zoomResolve = res; zoomStart = null; zoomWaitFrom = performance.now(); });
-      return zoomPromise;
+      return zoom.play(reduceMotion());
     },
-    skipZoom() { if (mode === "zoom") finishZoom(); },
+    skipZoom() { if (mode === "zoom") zoom.finish(); },
     setLook(az, el, unc) {
       look = { az: ((az % 360) + 360) % 360, el: Math.min(89, Math.max(-5, el)), unc: Number.isFinite(unc) ? unc : null };
       lookup.setUncertainty(look.az, look.el, look.unc);
     },
     highlight(id) {
       highlightIdx = id != null && noradIndex.has(id) ? noradIndex.get(id) : -1;
-      if (mode === "orbit") trails.updateArc(highlightIdx, now());
+      if (mode === "orbit") trails.updateArc(highlightIdx, sim.now());
       highlightObj.obj.visible = highlightIdx >= 0;
+      easing = mode === "orbit" && highlightIdx >= 0 && !reduceMotion();
     },
     /** "constellation" (Leo amber, Starlink blue) or "stage" (raising green, descending red, on station dimmed). */
     setColorMode(m) { satsObj.recolor(m === "stage" ? "stage" : "constellation"); },
-    stats: () => ({ ...stat }),
-    litFraction() {
-      try {
-        const buf = new Uint8Array(64 * 40 * 4);
-        renderer.setRenderTarget(probe);
-        renderer.render(scene, camera);
-        renderer.readRenderTargetPixels(probe, 0, 0, 64, 40, buf);
-        renderer.setRenderTarget(null);
-        let lit = 0;
-        for (let i = 0; i < buf.length; i += 4) if (buf[i] + buf[i + 1] + buf[i + 2] > 6) lit++;
-        return lit / (64 * 40);
-      } catch (err) {
-        renderer.setRenderTarget(null);
-        console.warn("[renderer] litFraction failed", err);
-        return 0;
-      }
+    stats: () => ({ ...census.get(), ...q.stats(), lastPassMs: propagator.lastPassMs }),
+    litFraction: probe.litFraction,
+    /** Move the Look Up / Tonight vantage point. horizon = UWB terrain profile or null for a flat 0 deg ring. */
+    setObserver(next, h = null) {
+      if (!next || !Number.isFinite(next.latDeg) || !Number.isFinite(next.lonDeg)) { console.warn("[renderer] ignoring invalid observer"); return; }
+      obs = { name: next.name || "Observer", latDeg: next.latDeg, lonDeg: next.lonDeg, heightKm: Number.isFinite(next.heightKm) ? next.heightKm : 0 };
+      profile = profileOf(h);
+      lookup.setProfile(profile);
+      lookup.setPeaks(profile && h.peaks); // peak labels only exist for the UWB horizon
+      if (propagator.latest()) census.run(propagator.latest());
     },
+    /** null = live wall clock (speed back to 1). A Date pins sim time there and it advances at the current speed. */
+    setTime(d) { sim.setTime(d); clockChanged(); },
+    setSpeed(x) { sim.setSpeed(x); clockChanged(); },
+    simTime: () => sim.now(),
+    /** keys = category keys to show, or null for all. */
+    setCategoryFilter(keys) { satsObj.setShown(keys == null ? null : filterMask(keys)); },
+    pickAt: q.pickAt,
+    identifyAt: q.identifyAt,
+    satState: q.satState,
+    requestNextPass: (id, o, from) => propagator.requestNextPass(id, o, from ?? sim.now()),
     dispose() {
       disposed = true;
       cancelAnimationFrame(raf);

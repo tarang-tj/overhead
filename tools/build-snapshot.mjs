@@ -1,26 +1,25 @@
-// Writes web/data/gp-snapshot.json: compact GP fallback for when the live fetch fails.
+// Writes web/data/gp-snapshot.json: compact GP fallback (the active group) for when the live fetch fails.
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONSTELLATIONS, fetchCelestrak, gpUrl } from "./lib/celestrak.mjs";
+import { fetchCelestrak, gpUrl } from "./lib/celestrak.mjs";
 import { buildSnapshotObject } from "./lib/snapshot.mjs";
 import { OUT_DIR } from "./build-line.mjs";
 
-export async function buildSnapshot() {
-  const gpByKey = {};
-  let oldest = null;
-  for (const [key, c] of Object.entries(CONSTELLATIONS)) {
-    const r = await fetchCelestrak(gpUrl(c.group));
-    gpByKey[key] = r.data;
-    if (!oldest || r.fetchedAt < oldest) oldest = r.fetchedAt;
-  }
-  const snap = buildSnapshotObject({ gpByKey, fetchedAt: oldest });
-  await mkdir(OUT_DIR, { recursive: true });
+/** Fatal on any non-200: the active group is the product. */
+export const fetchActive = (opts) => fetchCelestrak(gpUrl("active"), opts);
+
+export async function buildSnapshot({ active, categoryByNorad, write = true } = {}) {
+  const r = active ?? (await fetchActive());
+  const snap = buildSnapshotObject({ rows: r.data, categoryByNorad, fetchedAt: r.fetchedAt });
   const text = JSON.stringify(snap);
-  await writeFile(join(OUT_DIR, "gp-snapshot.json"), text);
-  return { count: snap.sats.length, bytes: text.length };
+  if (write) {
+    await mkdir(OUT_DIR, { recursive: true });
+    await writeFile(join(OUT_DIR, "gp-snapshot.json"), text);
+  }
+  return { count: snap.sats.length, skipped: snap.skipped, bytes: text.length, text };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  buildSnapshot().then((r) => console.log("snapshot", r)).catch((e) => { console.error(e.message); process.exit(1); });
+  buildSnapshot().then(({ text, ...r }) => console.log("snapshot", r)).catch((e) => { console.error(e.message); process.exit(1); });
 }

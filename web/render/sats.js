@@ -1,12 +1,14 @@
 // All satellites as one THREE.Points: per-vertex RGBA (constellation tint,
 // dimmed in Earth's shadow), positions lerped between 1 Hz sweeps.
 import * as THREE from "three";
+import { CATEGORY_RGB, IDX_LEO, IDX_STARLINK, categoryIndex } from "./categories.js";
 
-export const LEO_RGB = [0.961, 0.647, 0.141];  // #f5a524 amber
-export const STARLINK_RGB = [0.62, 0.773, 1.0];   // #9ec5ff cool blue
+export const LEO_RGB = CATEGORY_RGB[IDX_LEO];
+export const STARLINK_RGB = CATEGORY_RGB[IDX_STARLINK];
 const RAISING_RGB = [0.498, 0.839, 0.627];    // #7fd6a0 green
 const DESCENDING_RGB = [1.0, 0.541, 0.502];   // #ff8a80 red
 const ON_STATION_DIM = 0.78;
+const STAGE_OTHER_DIM = 0.3; // stage mode is about leo/starlink; every other category recedes
 const STAGE_POP = 2.4; // raising/descending points are drawn larger in stage mode so the few stand out
 const SHADOW_ALPHA = 0.28;
 
@@ -20,10 +22,11 @@ export function stageCodes(sats, line) {
   return Uint8Array.from(sats, (s) => code.get(Number(s.noradId)) || 0);
 }
 
-/** RGB for one satellite given its constellation (0 leo, 1 starlink), stage code and mode. */
-export function colorFor(constellation, stage, mode) {
-  const base = constellation === 0 ? LEO_RGB : STARLINK_RGB;
+/** RGB for one satellite given its category index (categories.js), stage code and mode. */
+export function colorFor(cat, stage, mode) {
+  const base = CATEGORY_RGB[cat] || CATEGORY_RGB[CATEGORY_RGB.length - 1];
   if (mode !== "stage") return base;
+  if (cat !== IDX_LEO && cat !== IDX_STARLINK) return base.map((v) => v * STAGE_OTHER_DIM);
   if (stage === 1) return RAISING_RGB;
   if (stage === 2) return DESCENDING_RGB;
   return base.map((v) => v * ON_STATION_DIM);
@@ -40,12 +43,12 @@ void main(){ vec2 d = gl_PointCoord-0.5; float r = length(d); if (r>0.5 || vC.a<
 
 export function createSatPoints({ sats, line, pixelRatio = 1 }) {
   const n = sats.length;
-  const cIdx = new Uint8Array(n); // 0 leo, 1 starlink
+  const cIdx = Uint8Array.from(sats, categoryIndex); // index into CATEGORY_KEYS
+  let shown = null; // category mask (1 = shown) or null for all
   const pos = new Float32Array(n * 3);
   const col = new Float32Array(n * 4);
   for (let i = 0; i < n; i++) {
-    cIdx[i] = sats[i].constellation === "leo" ? 0 : 1;
-    const rgb = LEO_RGB;
+    const rgb = CATEGORY_RGB[cIdx[i]];
     col.set([rgb[0], rgb[1], rgb[2], 0], i * 4);
   }
   const stage = stageCodes(sats, line);
@@ -74,10 +77,16 @@ export function createSatPoints({ sats, line, pixelRatio = 1 }) {
   points.frustumCulled = false;
   points.renderOrder = 10;
 
-  let prev = null, next = null, flags = null, t0 = 0, vPrev = null, vDt = 0, lastTime = 0;
+  let prev = null, next = null, flags = null, t0 = 0, vPrev = null, vDt = 0, lastTime = 0, span = 1000;
+  const alphaOf = (i) => (flags[i] === 2 || (shown && !shown[cIdx[i]]) ? 0 : flags[i] === 1 ? SHADOW_ALPHA : 1);
+  function applyAlpha() {
+    if (!flags) return;
+    for (let i = 0; i < n; i++) col[i * 4 + 3] = alphaOf(i);
+    colAttr.needsUpdate = true;
+  }
 
   return {
-    points, constellationIdx: cIdx, recolor,
+    points, categoryIdx: cIdx, recolor,
     /** Velocity (km/s) from the last two sweeps; zeros until the second one arrives. */
     velocityOf(i, out) {
       if (!vPrev || !next || flags[i] === 2) return out.set(0, 0, 0);
@@ -85,31 +94,37 @@ export function createSatPoints({ sats, line, pixelRatio = 1 }) {
     },
     /** Look Up draws shadowed satellites as hollow rings; orbit views keep dim dots. */
     setSize(px, ringShadow = false) { mat.uniforms.size.value = px * pixelRatio; mat.uniforms.ringShadow.value = ringShadow ? 1 : 0; },
-    /** Feed a sweep: { positions: Float32Array, flags: Uint8Array } */
-    push(sweep, nowMs) {
+    /** Show only these category indices' mask (Uint8Array, 1 = shown) or null for all. */
+    setShown(mask) { shown = mask; applyAlpha(); },
+    /** Feed a sweep: { positions: Float32Array, flags: Uint8Array }. `snap` jumps instead of lerping (sim time was set). */
+    push(sweep, nowMs, snap = false) {
       if (!sweep || sweep.positions.length !== n * 3) return;
       const prevFlags = flags;
-      vPrev = next; vDt = next ? Math.max(0.2, (sweep.timeMs - lastTime) / 1000) : 0; lastTime = sweep.timeMs;
-      prev = next ? Float32Array.from(pos) : sweep.positions;
+      const jump = snap || !next;
+      vPrev = jump ? null : next; vDt = jump ? 0 : Math.max(0.05, Math.abs(sweep.timeMs - lastTime) / 1000); lastTime = sweep.timeMs;
+      // Lerp over the real gap between sweeps (1 s normally, shorter while time-lapsing).
+      span = next && !snap ? Math.min(1500, Math.max(30, nowMs - t0)) : 1000;
+      prev = jump ? sweep.positions : Float32Array.from(pos);
       next = sweep.positions; flags = sweep.flags; t0 = nowMs;
       for (let i = 0; i < n; i++) {
-        col[i * 4 + 3] = flags[i] === 2 ? 0 : flags[i] === 1 ? SHADOW_ALPHA : 1;
         if (prevFlags && prevFlags[i] === 2) { // snap, do not streak in from the origin
           prev[3 * i] = next[3 * i]; prev[3 * i + 1] = next[3 * i + 1]; prev[3 * i + 2] = next[3 * i + 2];
         }
       }
-      colAttr.needsUpdate = true;
+      applyAlpha();
     },
     /** Advance interpolation to wall-clock `nowMs`. Returns false before the first sweep. */
-    update(nowMs, spanMs = 1000) {
+    update(nowMs) {
       if (!next) return false;
-      const a = Math.min(1, Math.max(0, (nowMs - t0) / spanMs));
+      const a = Math.min(1, Math.max(0, (nowMs - t0) / span));
       for (let i = 0; i < pos.length; i++) pos[i] = prev[i] + (next[i] - prev[i]) * a;
       posAttr.needsUpdate = true;
       return true;
     },
     get latest() { return next; },
     get flags() { return flags; },
+    get positions() { return pos; },
+    get shown() { return shown; },
     positionOf(i, out) { return out.set(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]); },
     dispose() { geo.dispose(); mat.dispose(); },
   };

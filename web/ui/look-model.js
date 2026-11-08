@@ -62,3 +62,9 @@ export function throttle(fn, hz = 30, clock = () => Date.now(), timer = setTimeo
     timer(() => { queued = false; last = clock(); fn(...pending); }, gap - (t - last));
   };
 }
+
+/** A short, small pointer gesture is a tap (pick), anything else is a drag. */
+export function isTap(down, up, maxPx = 6, maxMs = 350) {
+  if (!down || !up) return false;
+  return Math.hypot(up.x - down.x, up.y - down.y) < maxPx && up.t - down.t < maxMs;
+}

@@ -1,33 +1,33 @@
 {
- "generatedAt": "2026-11-08T06:55:11.710Z",
+ "generatedAt": "2026-11-08T08:17:06.811Z",
  "sources": {
   "gp": {
    "url": "https://celestrak.org/NORAD/elements/gp.php",
-   "fetchedAt": "2026-11-08T06:04:31.766Z"
+   "fetchedAt": "2026-11-08T08:17:06.811Z"
   },
   "satcat": {
    "url": "https://celestrak.org/satcat/records.php",
-   "fetchedAt": "2026-11-08T06:04:32.010Z"
+   "fetchedAt": "2026-11-08T08:17:07.585Z"
   },
   "perConstellation": {
    "leo": {
     "gp": {
      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=kuiper&FORMAT=json",
-     "fetchedAt": "2026-11-08T06:04:31.766Z"
+     "fetchedAt": "2026-11-08T08:17:06.811Z"
     },
     "satcat": {
      "url": "https://celestrak.org/satcat/records.php?NAME=KUIPER&FORMAT=json",
-     "fetchedAt": "2026-11-08T06:04:32.010Z"
+     "fetchedAt": "2026-11-08T08:17:07.585Z"
     }
    },
    "starlink": {
     "gp": {
      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=json",
-     "fetchedAt": "2026-11-08T06:13:31.370Z"
+     "fetchedAt": "2026-11-08T08:17:08.889Z"
     },
     "satcat": {
      "url": "https://celestrak.org/satcat/records.php?NAME=STARLINK&FORMAT=json",
-     "fetchedAt": "2026-11-08T06:04:47.266Z"
+     "fetchedAt": "2026-11-08T08:17:13.141Z"
     }
    }
   }

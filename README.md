@@ -1,6 +1,12 @@
 # OVERHEAD
 
-**Every Amazon Leo and Starlink satellite over UW Bothell right now, and the supply chain that put it there.**
+**Every active satellite over you, now or any time you pick. And for Amazon Leo and Starlink, the supply chain that put them there.**
+
+Every active satellite CelesTrak tracks: 16,896 in the 2026-11-08 run, colored by type (stations, navigation, weather, earth observation, science, comms, Starlink, Amazon Leo, other).
+- **Where:** over UW Bothell by default, or over you with your phone's location.
+- **When:** live, or scrubbed 24 hours either way.
+- **Search** any satellite by name or number. **Tap** any dot for what it is, who owns it, when and where it launched, how high and fast it is, and its next pass over you.
+- **"What's that light?"** In Look Up, point at the sky and it names the satellites within 5 degrees, sunlit or in shadow.
 
 Two satellite factories sit a short drive from the UW Bothell campus:
 - **Amazon Leo** (formerly Project Kuiper): satellites are built in Kirkland, with Redmond as the design hub.
@@ -23,6 +29,7 @@ Redmond      Vandenberg
 | **Intro** | One continuous zoom from UW Bothell (USGS aerial imagery) up past Kirkland and Redmond, then out to the shells where the fleets fly. |
 | **Orbit** | The real Earth (NASA GIBS imagery: yesterday's day side, Black Marble night lights) with every satellite at its current position, propagated with SGP4 once a second in a Web Worker. Tap a pass in Tonight to highlight it with a 10-minute orbit arc. |
 | **The Line** | Stage counts, launches and decays by month, launch sites, and a Little's Law read on each line. Color the globe by stage: raising green, descending red. |
+| **Explore** (always on) | Search with ISS, Hubble, Tiangong and NOAA 20 chips; a type legend that doubles as a filter; a time bar (24 h either way, 1x / 60x / 600x, Now); "Use my location". |
 | **Look Up** | The sky from campus with the real horizon: the Cascades, Rainier, Baker and the Olympics, from the Copernicus elevation model. On a phone, point it at the sky. On desktop, drag to look around. Short tails show which way each satellite is moving. |
 | **Tonight** | The passes you can actually see from campus in the next 24 hours, plus a share card. |
 
@@ -51,6 +58,8 @@ Launched counts include one payload per constellation that has no decay date and
 - **Data age:** the badge always shows how old the orbit data is. It says when the page is running on the saved snapshot.
 - **"Visible"** means above 10 deg, sunlit, and the sun at least 6 deg below the horizon at campus. Brightness is not modeled. Amazon Leo averages about magnitude 6.3 (IAU-led study, 2026), near the naked-eye limit, so in a city sky most are faint or invisible.
 - **Factory locations** are per constellation. Public data does not say which building made which satellite.
+- **Flat horizon away from UW Bothell.** The terrain horizon is modeled only for UW Bothell, and the app says so.
+- **Owners and launch sites come from SATCAT codes.** Unknown codes show raw.
 - **No guesses about intent.** The app says "last Amazon Leo launch in the catalog" rather than claiming launches are paused.
 
 ## Run it

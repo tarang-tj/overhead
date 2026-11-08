@@ -7,11 +7,11 @@ import { buildConstellation } from "./lib/line.mjs";
 
 export const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "web", "data");
 
-export async function buildLine({ now = new Date() } = {}) {
+export async function buildLine({ now = new Date(), fetchOpts, write = true } = {}) {
   const out = { generatedAt: now.toISOString(), sources: {}, constellations: {} };
   const perKey = {};
   for (const [key, c] of Object.entries(CONSTELLATIONS)) {
-    const { gp, satcat } = await fetchConstellation(c);
+    const { gp, satcat } = await fetchConstellation(c, fetchOpts);
     perKey[key] = {
       gp: { url: gp.url, fetchedAt: gp.fetchedAt },
       satcat: { url: satcat.url, fetchedAt: satcat.fetchedAt },
@@ -27,8 +27,10 @@ export async function buildLine({ now = new Date() } = {}) {
     satcat: { url: "https://celestrak.org/satcat/records.php", fetchedAt: oldest("satcat") },
     perConstellation: perKey,
   };
-  await mkdir(OUT_DIR, { recursive: true });
-  await writeFile(join(OUT_DIR, "line.json"), JSON.stringify(out, null, 1));
+  if (write) {
+    await mkdir(OUT_DIR, { recursive: true });
+    await writeFile(join(OUT_DIR, "line.json"), JSON.stringify(out, null, 1));
+  }
   return out;
 }
 
